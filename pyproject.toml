@@ -28,7 +28,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/ivofrolov/scrapy-translate"
-Issues = "https://github.com/pypa/ivofrolov/scrapy-translate"
+Issues = "https://github.com/ivofrolov/scrapy-translate/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]
