@@ -8,23 +8,30 @@ from scrapy.exceptions import NotConfigured
 from scrapy.spiders import Spider
 from scrapy.utils.misc import build_from_crawler, load_object
 
-from scrapy_translate.cache_providers import CacheProvider, NullCacheProvider
-from scrapy_translate.translation_providers import TranslationProvider
-
-from .processors import extract_text_from_html, inject_text_into_html
+from scrapy_translate.processors import (
+    extract_text_from_html,
+    extract_text_from_list,
+    inject_text_into_html,
+    inject_text_into_list,
+)
+from scrapy_translate.providers import (
+    CacheProvider,
+    NullCacheProvider,
+    TranslationProvider,
+)
 
 
 class TranslatedString(UserString):
-    no_cache: bool
+    cache: bool
 
-    def __init__(self, *args, no_cache: bool = False) -> None:
+    def __init__(self, *args, cache: bool = False) -> None:
         super().__init__(*args)
-        self.no_cache = no_cache
+        self.cache = cache
 
 
 class TranslatedFieldMeta(TypedDict):
     html: bool
-    no_cache: bool
+    cache: bool
 
 
 class TranslatePipeline:
@@ -81,7 +88,7 @@ class TranslatePipeline:
                     field_name,
                     TranslatedFieldMeta(
                         html=field_meta.get("translate_html", False),
-                        no_cache=field_meta.get("translate_no_cache", False),
+                        cache=field_meta.get("translate_cache", False),
                     ),
                 )
 
@@ -94,12 +101,12 @@ class TranslatePipeline:
             if field_meta["html"]:
                 strings = extract_text_from_html(item_adapter[field_name])
             elif isinstance(item_adapter[field_name], list):
-                strings = item_adapter[field_name]
+                strings = extract_text_from_list(item_adapter[field_name])
             else:
                 strings = [item_adapter[field_name]]
 
             translated_strings.extend(
-                TranslatedString(string, no_cache=field_meta.get("no_cache", False))
+                TranslatedString(string, cache=field_meta.get("cache", False))
                 for string in strings
                 if string
             )
@@ -121,10 +128,13 @@ class TranslatePipeline:
                     ],
                 )
             elif isinstance(item_adapter[field_name], list):
-                item_adapter[field_name] = [
-                    translations.get(string, string)
-                    for string in item_adapter[field_name]
-                ]
+                item_adapter[field_name] = inject_text_into_list(
+                    item_adapter[field_name],
+                    [
+                        translations.get(string, string)
+                        for string in extract_text_from_list(item_adapter[field_name])
+                    ],
+                )
             else:
                 item_adapter[field_name] = translations.get(
                     item_adapter[field_name], item_adapter[field_name]
@@ -132,7 +142,7 @@ class TranslatePipeline:
 
     async def _translate(self, strings: list[TranslatedString]) -> dict[str, str]:
         cached_translations: dict[str, str] = {}
-        from_cache = set(s.data for s in strings if not s.no_cache)
+        from_cache = set(s.data for s in strings if s.cache)
         if from_cache:
             cached_translations = await self._cache_provider.get(from_cache)
 

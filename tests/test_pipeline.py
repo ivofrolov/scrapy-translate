@@ -1,21 +1,22 @@
 import unittest
 from unittest import mock
 
-from itemadapter import ItemAdapter
+from itemadapter.adapter import ItemAdapter
 from scrapy.crawler import Crawler
 from scrapy.exceptions import NotConfigured
 from scrapy.item import Field, Item
 from scrapy.settings import Settings
 from scrapy.spiders import Spider
 
-from scrapy_translate.cache_providers import CacheProvider, NullCacheProvider
 from scrapy_translate.pipeline import (
     TranslatedFieldMeta,
     TranslatedString,
     TranslatePipeline,
 )
-from scrapy_translate.translation_providers import (
+from scrapy_translate.providers import (
+    CacheProvider,
     IdentityTranslationProdiver,
+    NullCacheProvider,
     TranslationProvider,
 )
 
@@ -27,9 +28,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
 
     def test_from_crawler(self):
         crawler_mock = mock.create_autospec(Crawler, instance=True)
-        translation_provider = (
-            "scrapy_translate.translation_providers.IdentityTranslationProdiver"
-        )
+        translation_provider = "scrapy_translate.providers.IdentityTranslationProdiver"
         type(crawler_mock).settings = mock.PropertyMock(
             return_value=Settings({"TRANSLATION_PROVIDER": translation_provider})
         )
@@ -62,8 +61,8 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
     async def test_process_item(self):
         class TestItem(Item):
             field1 = Field(translate=True)
-            field2 = Field(translate=True)
-            field3 = Field(translate=True, translate_html=True)
+            field2 = Field(translate=True, translate_cache=True)
+            field3 = Field(translate=True, translate_html=True, translate_cache=True)
 
         spider_mock = mock.create_autospec(Spider, instance=True)
         pipeline = TranslatePipeline(
@@ -111,11 +110,11 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
             field2 = Field(translate=False)
             field3 = Field(translate=True)
             field4 = Field(translate=True, translate_html=True)
-            field5 = Field(translate=True, translate_no_cache=True)
+            field5 = Field(translate=True, translate_cache=True)
             field6 = Field(
                 translate=False,
                 translate_html=True,
-                translate_no_cache=True,
+                translate_cache=True,
             )
 
         pipeline = TranslatePipeline(
@@ -125,9 +124,9 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
 
         item = TestItem()
         expected = [
-            ("field3", TranslatedFieldMeta(html=False, no_cache=False)),
-            ("field4", TranslatedFieldMeta(html=True, no_cache=False)),
-            ("field5", TranslatedFieldMeta(html=False, no_cache=True)),
+            ("field3", TranslatedFieldMeta(html=False, cache=False)),
+            ("field4", TranslatedFieldMeta(html=True, cache=False)),
+            ("field5", TranslatedFieldMeta(html=False, cache=True)),
         ]
 
         actual = list(pipeline._translated_fields_meta(ItemAdapter(item)))
@@ -163,7 +162,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
     def test_get_translated_strings__set_string_meta(self):
         class TestItem(Item):
             field1 = Field(translate=True)
-            field2 = Field(translate=True, translate_no_cache=True)
+            field2 = Field(translate=True, translate_cache=True)
 
         pipeline = TranslatePipeline(
             cache_provider=self.cache_mock,
@@ -175,7 +174,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
         strings = pipeline._get_translated_strings(ItemAdapter(item))
 
         self.assertEqual(strings, ["foobar", "foo", "bar"])
-        cache_meta = [string.no_cache for string in strings]
+        cache_meta = [string.cache for string in strings]
         self.assertEqual(cache_meta, [False, True, True])
 
     def test_set_translated_strings(self):
@@ -238,7 +237,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
         self.cache_mock.get.return_value = {}
         self.translation_mock.translate.return_value = {"lorem": "merol"}
 
-        strings = [TranslatedString("lorem", no_cache=True)]
+        strings = [TranslatedString("lorem")]
         expected = {"lorem": "merol"}
 
         actual = await pipeline._translate(strings)
@@ -254,7 +253,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
         self.cache_mock.get.return_value = {"lorem": "merol"}
         self.translation_mock.translate.return_value = {}
 
-        strings = [TranslatedString("lorem")]
+        strings = [TranslatedString("lorem", cache=True)]
         expected = {"lorem": "merol"}
 
         actual = await pipeline._translate(strings)
@@ -272,7 +271,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
         self.cache_mock.get.return_value = {}
         self.translation_mock.translate.return_value = {"lorem": "merol"}
 
-        strings = [TranslatedString("lorem")]
+        strings = [TranslatedString("lorem", cache=True)]
         expected = {"lorem": "merol"}
 
         actual = await pipeline._translate(strings)
@@ -288,7 +287,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
         self.cache_mock.get.return_value = {}
         self.translation_mock.translate.return_value = {"lorem": "merol"}
 
-        strings = [TranslatedString("lorem", no_cache=True)]
+        strings = [TranslatedString("lorem")]
         expected = {"lorem": "merol"}
 
         actual = await pipeline._translate(strings)

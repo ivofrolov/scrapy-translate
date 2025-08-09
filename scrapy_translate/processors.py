@@ -65,3 +65,25 @@ def inject_text_into_html(html: str, text: list[str]) -> str:
     injector.set_text(text)
     injector.feed(html)
     return buffer.getvalue()
+
+
+def extract_text_from_list(it: list) -> list[str]:
+    def walk(it):
+        for el in it:
+            if isinstance(el, str):
+                yield el
+            else:
+                yield from walk(el)
+
+    return list(walk(it))
+
+
+def inject_text_into_list(it: list, text: list[str]) -> list:
+    def walk(it, text):
+        for el in it:
+            if isinstance(el, str):
+                yield next(text)
+            else:
+                yield list(walk(el, text))
+
+    return list(walk(it, iter(text)))
