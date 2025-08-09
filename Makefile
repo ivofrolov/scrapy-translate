@@ -19,3 +19,11 @@ install:
 .PHONY: test
 test:
 	python3 -m unittest
+
+.PHONY: build
+build:
+	python3 -m build --no-isolation
+
+.PHONY: upload
+upload: build
+	python3 -m twine upload dist/*
