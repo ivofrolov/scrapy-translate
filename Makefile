@@ -10,7 +10,7 @@ format:
 .PHONY: lint
 lint:
 	ruff check --output-format pylint $(package) $(tests)
-	ty check --output-format concise --color never --no-progress $(src)/$(package)
+	ty check --output-format concise --color never --no-progress $(package)
 
 .PHONY: install
 install:
@@ -20,8 +20,12 @@ install:
 test:
 	python3 -m unittest
 
+.PHONY: ensure-build-system
+ensure-build-system:
+	python3 -m pip install build setuptools twine wheel -q
+
 .PHONY: build
-build:
+build: ensure-build-system
 	python3 -m build --no-isolation
 
 .PHONY: upload
