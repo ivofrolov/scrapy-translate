@@ -54,20 +54,23 @@ class TranslatePipeline:
 
         if not (translation_provider := crawler.settings.get("TRANSLATION_PROVIDER")):
             raise NotConfigured("TRANSLATION_PROVIDER must be set")
-        cache_provider = crawler.settings.setdefault(
+        cache_provider = crawler.settings.get(
             "TRANSLATION_CACHE_PROVIDER",
             NullCacheProvider,
         )
 
         return cls(
-            cache_provider=build_from_crawler(load_object(cache_provider), crawler),
+            cache_provider=build_from_crawler(
+                load_object(cache_provider),
+                crawler,
+            ),
             translation_provider=build_from_crawler(
                 load_object(translation_provider),
                 crawler,
             ),
         )
 
-    async def process_item(self, item: Any, spider: Spider) -> Any:
+    async def process_item(self, item: Any, spider: Spider | None = None) -> Any:
         if not is_item(item):
             return item
 

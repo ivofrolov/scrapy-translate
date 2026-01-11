@@ -1,6 +1,6 @@
 [project]
 name = "scrapy-translate"
-version = "1.1"
+version = "1.2"
 authors = [
   { name="Ivan Frolov", email="ivofrolov@fastmail.com" },
 ]
@@ -24,6 +24,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 
 [project.urls]

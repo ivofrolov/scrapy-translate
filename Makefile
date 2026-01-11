@@ -10,7 +10,7 @@ format:
 .PHONY: lint
 lint:
 	ruff check --output-format pylint $(package) $(tests)
-	pyright $(package)
+	ty check --output-format concise --color never --no-progress $(src)/$(package)
 
 .PHONY: install
 install:

@@ -58,7 +58,6 @@ TRANSLATION_PROVIDER = "myproject.services.MyTranslationProvider"
 You can optionally set the caching service class. By default, there is no caching.
 
 ``` python
-# TRANSLATION_CACHE_PROVIDER = "scrapy_translate.providers.NullCacheProvider"
 TRANSLATION_CACHE_PROVIDER = "myproject.services.MyCacheProvider"
 ```
 
