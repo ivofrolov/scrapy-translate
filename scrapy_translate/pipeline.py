@@ -101,6 +101,9 @@ class TranslatePipeline:
     ) -> list[TranslatedString]:
         translated_strings: list[TranslatedString] = []
         for field_name, field_meta in self._translated_fields_meta(item_adapter):
+            if field_name not in item_adapter:
+                continue
+
             if field_meta["html"]:
                 strings = extract_text_from_html(item_adapter[field_name])
             elif isinstance(item_adapter[field_name], list):
@@ -122,6 +125,9 @@ class TranslatePipeline:
         translations: dict[str, str],
     ) -> None:
         for field_name, field_meta in self._translated_fields_meta(item_adapter):
+            if field_name not in item_adapter:
+                continue
+
             if field_meta.get("html"):
                 item_adapter[field_name] = inject_text_into_html(
                     item_adapter[field_name],

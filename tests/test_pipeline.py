@@ -93,6 +93,25 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(actual, expected)
 
+    async def test_process_item__skip_blank_fields(self):
+        class TestItem(Item):
+            field = Field(translate=True)
+
+        spider_mock = mock.create_autospec(Spider, instance=True)
+        pipeline = TranslatePipeline(
+            cache_provider=self.cache_mock,
+            translation_provider=self.translation_mock,
+        )
+        self.cache_mock.get.return_value = {}
+        self.translation_mock.translate.return_value = {}
+
+        item = TestItem()
+        expected = TestItem()
+
+        actual = await pipeline.process_item(item, spider_mock)
+
+        self.assertEqual(actual, expected)
+
     async def test_process_item__skip_not_items(self):
         spider_mock = mock.create_autospec(Spider, instance=True)
         pipeline = TranslatePipeline(
@@ -137,6 +156,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
         checks = (
             (Field(), "foobar", []),
             (Field(translate=True), "", []),
+            (Field(translate=True), None, []),
             (Field(translate=True), "foobar", ["foobar"]),
             (Field(translate=True), ["foo", "bar"], ["foo", "bar"]),
             (
@@ -210,6 +230,8 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
 
     def test_set_translated_strings__fallback_to_original(self):
         checks = (
+            (Field(translate=True), ""),
+            (Field(translate=True), None),
             (Field(translate=True), "foo"),
             (Field(translate=True), ["foo", "baz"]),
             (Field(translate=True, translate_html=True), "<p>foo<i>baz</i></p>"),
@@ -227,7 +249,7 @@ class TestTranslatePipeline(unittest.IsolatedAsyncioTestCase):
 
                 pipeline._set_translated_strings(ItemAdapter(item), {})
 
-                self.assertEqual(item["field"], item["field"])
+                self.assertEqual(item["field"], value)
 
     async def test_translate(self):
         pipeline = TranslatePipeline(
